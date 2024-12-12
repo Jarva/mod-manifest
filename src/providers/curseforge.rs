@@ -53,7 +53,7 @@ pub async fn get_mod_info(id: &str, loader: &Loader, version: Option<&str>) -> R
       forge::from_cf(info_resp.data.links.website_url, files)
     },
     Loader::NeoForge => {
-      neoforge::from_cf(info_resp.data.links.website_url, files)
+      forge::from_cf(info_resp.data.links.website_url, files)
     }
   }
 }
