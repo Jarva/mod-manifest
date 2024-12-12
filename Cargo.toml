@@ -1,0 +1,23 @@
+[package]
+name = "modupdate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rocket = "0.5.1"
+strum = "0.26.3"
+strum_macros = "0.26"
+rocket_okapi = {  version = "0.9.0", features = ["swagger"] }
+schemars = "0.8.21"
+serde = "1.0.215"
+serde_json = "1.0.133"
+dotenvy = "0.15.7"
+reqwest = { version = "0.12.9", features = ["json"] }
+anyhow = "1.0.94"
+env_logger = "0.11.5"
+serde_derive = "1.0.215"
+chrono = { version = "0.4.39", features = ["serde"] }
+regex = "1.11.1"
+serde_repr = "0.1.19"
+indexmap = { version = "2.7.0", features = ["serde"] }
+fancy-regex = "0.14.0"
