@@ -1,15 +1,15 @@
-use crate::types::curseforge::enums::FileReleaseType;
 use crate::types::curseforge::files::File;
 use crate::types::manifest::Manifest;
 use anyhow::Result;
 use fancy_regex::Regex;
 use indexmap::IndexMap;
 use std::collections::HashMap;
+use std::sync::LazyLock;
+use crate::types::curseforge::enums::FileReleaseType;
+
+static FILE_VERSION_FINDER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:^|[^0-9])(?<version>\d+(?:\.\d+-?(?:beta|alpha)?)*)(?=[^0-9]|$)").unwrap());
 
 pub fn from_cf(url: String, files: Vec<File>) -> Result<String> {
-    let file_version_finder =
-        Regex::new(r"(?:^|[^0-9])(?<version>\d+(?:\.\d+)*)(?=[^0-9]|$)").unwrap();
-
     let mut mcversions = IndexMap::new();
     let mut promos = HashMap::new();
 
@@ -17,33 +17,20 @@ pub fn from_cf(url: String, files: Vec<File>) -> Result<String> {
         if !file.is_available {
             continue;
         }
-        if file.release_type != FileReleaseType::Release {
-            continue;
-        }
 
         let file_name = file.file_name.clone();
-        let captures = file_version_finder.captures_iter(file_name.as_str());
+        let captures = FILE_VERSION_FINDER.captures_iter(file_name.as_str());
 
         let mut file_version = None;
         let mut last_found = None;
-        for capture in captures {
-            if capture.is_ok() {
-                let found = capture
-                    .unwrap()
-                    .name("version")
-                    .unwrap()
-                    .as_str()
-                    .to_string();
-                let did_find = file
-                    .game_versions
-                    .iter()
-                    .any(|version| found.contains(version.as_str()));
-                if !did_find {
-                    file_version = Some(found);
-                    break;
-                }
-                last_found = Some(found);
+        for capture in captures.filter_map(Result::ok) {
+            let found = capture.name("version").unwrap().as_str().to_string();
+            let did_find = file.game_versions.iter().any(|version| found.contains(version));
+            if !did_find {
+                file_version = Some(found);
+                break;
             }
+            last_found = Some(found);
         }
 
         if file_version.is_none() {
@@ -57,18 +44,18 @@ pub fn from_cf(url: String, files: Vec<File>) -> Result<String> {
         let versions = file.game_versions.iter().filter(|a| a.contains("."));
         for version in versions {
             if !mcversions.contains_key(version) {
-                mcversions.insert(version.to_string(), IndexMap::new());
+                mcversions.insert(version.to_owned(), IndexMap::new());
             }
             let mcversion = mcversions.get_mut(version).unwrap();
             mcversion.insert(
-                file_version.clone().unwrap().to_string(),
+                file_version.clone().unwrap(),
                 format!("{}/files/{}", url, file.id),
             );
-            if !promos.contains_key(version) {
-                promos.insert(
-                    version.to_string(),
-                    file_version.clone().unwrap().to_string(),
-                );
+            let latest = version.to_owned() + "-latest";
+            promos.entry(latest).or_insert_with(|| file_version.clone().unwrap());
+            if file.release_type == FileReleaseType::Release {
+                let recommended = version.to_owned() + "-recommended";
+                promos.entry(recommended).or_insert_with(|| file_version.clone().unwrap());
             }
         }
     }

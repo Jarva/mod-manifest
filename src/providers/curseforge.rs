@@ -4,30 +4,28 @@ use crate::types::curseforge::files::{File, ModFiles};
 use crate::types::curseforge::info::ModInfo;
 use crate::types::params::loader::Loader;
 use anyhow::Result;
-use std::collections::HashMap;
 use std::env;
 
 pub async fn get_mod_info(id: &str, loader: &Loader, version: Option<&str>) -> Result<String> {
-    let mod_loader_types = HashMap::from([(Loader::Forge, 1), (Loader::NeoForge, 6)]);
+    let mod_loader_type = match loader {
+        Loader::Forge => "1",
+        Loader::NeoForge => "6"
+    };
 
-    let info_resp = get_cf_client()?
+    let info_resp = get_cf_client()
         .get(format!("https://api.curseforge.com/v1/mods/{}", id))
         .header(
             "x-api-key",
             env::var("CF_API_KEY").expect("CF_API_KEY not set"),
         )
         .send()
-        .await?
+        .await.expect("Unable to retrieve mod info")
         .json::<ModInfo>()
-        .await?;
+        .await.expect("Unable to decode mod info");
 
     let mut files: Vec<File> = Vec::new();
     loop {
-        let mod_loader_type = mod_loader_types
-            .get(loader)
-            .expect("Unable to retrieve loader type")
-            .to_string();
-        let mut files_builder = get_cf_client()?
+        let mut files_builder = get_cf_client()
             .get(format!("https://api.curseforge.com/v1/mods/{}/files", id))
             .header(
                 "x-api-key",
@@ -35,27 +33,29 @@ pub async fn get_mod_info(id: &str, loader: &Loader, version: Option<&str>) -> R
             )
             .query(&[
                 ("index", files.len().to_string().as_str()),
-                ("modLoaderType", mod_loader_type.as_str()),
+                ("modLoaderType", mod_loader_type),
             ]);
 
-        if version.is_some() {
-            files_builder = files_builder.query(&[("gameVersion", version.unwrap())]);
+        if let Some(version) = version {
+            files_builder = files_builder.query(&[("gameVersion", version)]);
         }
 
-        let mut file_resp = files_builder.send().await?.json::<ModFiles>().await?;
+        let mut file_resp = files_builder.send()
+          .await.expect("Unable to retrieve mod files")
+          .json::<ModFiles>()
+          .await.expect("Unable to decode mod files");
 
         files.append(&mut file_resp.data);
 
-        if files.len().eq(&(file_resp.pagination.total_count as usize)) {
+        if files.len() == file_resp.pagination.total_count as usize {
             break;
         }
     }
 
-    files.sort_by(|a, b| a.file_date.cmp(&b.file_date));
-    files.reverse();
+    files.sort_by_key(|a| std::cmp::Reverse(a.file_date));
 
     match loader {
         Loader::Forge => forge::from_cf(info_resp.data.links.website_url, files),
-        Loader::NeoForge => forge::from_cf(info_resp.data.links.website_url, files),
+        Loader::NeoForge => neoforge::from_cf(info_resp.data.links.website_url, files),
     }
 }

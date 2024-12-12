@@ -24,7 +24,6 @@ pub struct Data {
     pub authors: Vec<Author>,
     pub logo: Logo,
     pub main_file_id: i64,
-    pub latest_files: Vec<LatestFile>,
     pub date_created: String,
     pub date_modified: String,
     pub date_released: String,
@@ -39,9 +38,9 @@ pub struct Data {
 #[serde(rename_all = "camelCase")]
 pub struct Links {
     pub website_url: String,
-    pub wiki_url: String,
-    pub issues_url: String,
-    pub source_url: String,
+    pub wiki_url: Option<String>,
+    pub issues_url: Option<String>,
+    pub source_url: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,26 +61,4 @@ pub struct Logo {
     pub description: String,
     pub thumbnail_url: String,
     pub url: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LatestFile {
-    pub id: i64,
-    pub game_id: i64,
-    pub mod_id: i64,
-    pub is_available: bool,
-    pub display_name: String,
-    pub file_name: String,
-    pub release_type: i64,
-    pub file_status: i64,
-    pub file_date: String,
-    pub file_length: i64,
-    pub download_count: i64,
-    pub download_url: String,
-    pub game_versions: Vec<String>,
-    pub alternate_file_id: i64,
-    pub is_server_pack: bool,
-    pub file_fingerprint: i64,
-    pub file_size_on_disk: Option<i64>,
 }

@@ -22,20 +22,21 @@ async fn manifest(
     id: &str,
     loader: Loader,
     version: Option<&str>,
-) -> (Status, (ContentType, Option<String>)) {
-    if provider == Provider::CurseForge {
-        (
-            Status::Ok,
+) -> (Status, (ContentType, String)) {
+    match provider {
+        Provider::CurseForge => {
+            if let Ok(json) = curseforge::get_mod_info(id, &loader, version).await {
+                (Status::Ok, (ContentType::JSON, json))
+            } else {
+                (Status::InternalServerError, (ContentType::JSON, String::from("{}")))
+            }
+        },
+        _ => {
             (
-                ContentType::JSON,
-                curseforge::get_mod_info(id, &loader, version).await.ok(),
-            ),
-        )
-    } else {
-        (
-            Status::NotImplemented,
-            (ContentType::Plain, Some(String::from("Not Implemented"))),
-        )
+                Status::NotImplemented,
+                (ContentType::Plain, String::from("Not Implemented")),
+            )
+        }
     }
 }
 
