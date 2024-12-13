@@ -6,7 +6,7 @@ mod types;
 #[macro_use]
 extern crate rocket;
 
-use crate::providers::curseforge;
+use crate::providers::{curseforge, modrinth};
 use crate::types::params::{loader::Loader, provider::Provider};
 use dotenvy::dotenv;
 use rocket::http::{ContentType, Status};
@@ -14,6 +14,7 @@ use rocket_okapi::okapi::openapi3::{Info, OpenApi};
 use rocket_okapi::openapi;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::env;
+use rocket_sentry::RocketSentry;
 
 #[openapi(tag = "Manifest")]
 #[get("/manifest/<provider>/<id>/<loader>?<version>")]
@@ -26,6 +27,13 @@ async fn manifest(
     match provider {
         Provider::CurseForge => {
             if let Ok(json) = curseforge::get_mod_info(id, &loader, version).await {
+                (Status::Ok, (ContentType::JSON, json))
+            } else {
+                (Status::InternalServerError, (ContentType::JSON, String::from("{}")))
+            }
+        },
+        Provider::Modrinth => {
+            if let Ok(json) = modrinth::get_mod_info(id, &loader, version).await {
                 (Status::Ok, (ContentType::JSON, json))
             } else {
                 (Status::InternalServerError, (ContentType::JSON, String::from("{}")))
@@ -63,5 +71,7 @@ fn rocket() -> _ {
         .into(),
     );
 
-    rocket::build().mount("/", routes)
+    rocket::build()
+      .attach(RocketSentry::fairing())
+      .mount("/", routes)
 }
