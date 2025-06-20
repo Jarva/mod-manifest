@@ -19,5 +19,5 @@ FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/modupdate /usr/local/bin
 RUN apt update && apt upgrade
-RUN apt install -y libssl3 ca-certificates
+RUN apt install -y libssl3 ca-certificates curl
 ENTRYPOINT ["/usr/local/bin/modupdate"]
