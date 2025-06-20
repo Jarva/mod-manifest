@@ -16,6 +16,11 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::env;
 use rocket_sentry::RocketSentry;
 
+#[get("/health")]
+async fn healthcheck() -> String {
+    String::from("OK")
+}
+
 #[openapi(tag = "Manifest")]
 #[get("/manifest/<provider>/<id>/<loader>?<version>")]
 async fn manifest(
@@ -61,7 +66,7 @@ fn rocket() -> _ {
         ..spec.info
     };
     let mut routes: Vec<rocket::Route> =
-        rocket_okapi::openapi_routes![manifest](Some(spec), &settings);
+        rocket_okapi::openapi_routes![manifest, healthcheck](Some(spec), &settings);
 
     routes.extend(
         make_swagger_ui(&SwaggerUIConfig {
