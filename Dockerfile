@@ -20,4 +20,7 @@ WORKDIR /app
 COPY --from=builder /app/target/release/modupdate /usr/local/bin
 RUN apt update && apt upgrade
 RUN apt install -y libssl3 ca-certificates curl
+
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
+
 ENTRYPOINT ["/usr/local/bin/modupdate"]
