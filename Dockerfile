@@ -18,8 +18,8 @@ RUN cargo build --release --bin modupdate
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/modupdate /usr/local/bin
-RUN apt update && apt upgrade
-RUN apt install -y libssl3 ca-certificates curl
+RUN apt update && apt install --no-install-recommends -y libssl3 ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
 
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
